@@ -1,0 +1,6 @@
+student_id,age,gender,study_hours_weekly,attendance_percent,previous_gpa,assignments_completed,participation_score,midterm_score,hours_on_platform,final_grade
+T001,19,M,35.0,92.0,7.8,95,85,78,120,A
+T002,22,F,8.0,68.0,9.2,75,60,88,35,S
+T003,20,M,22.0,88.0,6.5,80,75,65,95,B
+T004,24,F,12.0,95.0,7.0,85,90,45,150,D
+T005,21,M,28.0,75.0,8.5,70,65,82,60,A
