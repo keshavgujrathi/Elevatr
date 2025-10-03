@@ -1,8 +1,3 @@
-"""
-Utility functions for Elevatr student performance prediction API.
-Handles model loading, preprocessing, recommendations, and risk assessment.
-"""
-
 import pandas as pd
 import numpy as np
 import joblib
