@@ -1,18 +1,28 @@
-# Python
+# Python cache and virtual environments
 __pycache__/
 *.pyc
 *.pyo
+.venv/
 venv/
 env/
-*.pkl
 .ipynb_checkpoints/
+
+# Python build and test artifacts
+build/
+dist/
+*.egg-info/
+htmlcov/
+.pytest_cache/
 
 # Node
 node_modules/
 .env
-.DS_Store
-dist/
 
-# IDE
+# IDE and OS files
 .vscode/
 .idea/
+.DS_Store
+
+# Generated output files
+backend/test_results.txt
+*.log
