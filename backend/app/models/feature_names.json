@@ -1,0 +1,27 @@
+{
+  "feature_names": [
+    "age",
+    "study_hours_weekly",
+    "attendance_percent",
+    "previous_gpa",
+    "assignments_completed",
+    "participation_score",
+    "midterm_score",
+    "hours_on_platform",
+    "gender_encoded"
+  ],
+  "grade_classes": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "F",
+    "S"
+  ],
+  "gender_encoding": {
+    "F": 0,
+    "M": 1
+  },
+  "model_name": "Random Forest",
+  "test_accuracy": 0.785
+}
