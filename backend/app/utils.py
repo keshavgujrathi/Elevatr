@@ -17,9 +17,11 @@ def load_model_assets() -> Tuple[Any, Any, Any, List[str]]:
         Returns (None, None, None, None) if loading fails
     """
     try:
-        models_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'models')
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        models_dir = os.path.join(base_dir, 'models')
+
         
-        model = joblib.load(os.path.join(models_dir, 'gradeguard_model.pkl'))
+        model = joblib.load(os.path.join(models_dir, 'elevatr_model.pkl'))
         scaler = joblib.load(os.path.join(models_dir, 'scaler.pkl'))
         label_encoder = joblib.load(os.path.join(models_dir, 'label_encoder.pkl'))
         

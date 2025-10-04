@@ -35,7 +35,9 @@ def load_model_artifacts():
     """Load all ML model artifacts from the models directory."""
     global model, scaler, label_encoder, feature_names
     try:
-        models_dir = 'models'
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        models_dir = os.path.join(base_dir, 'models')
+
         
         logger.info(f"Loading models from: {models_dir}")
         
