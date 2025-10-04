@@ -38,6 +38,10 @@ def load_model_artifacts():
         base_dir = os.path.dirname(os.path.abspath(__file__))
         models_dir = os.path.join(base_dir, 'models')
 
+        logger.info(f"Models folder path: {models_dir}")
+        logger.info(f"Models folder content: {os.listdir(models_dir)}")
+
+
         
         logger.info(f"Loading models from: {models_dir}")
         
