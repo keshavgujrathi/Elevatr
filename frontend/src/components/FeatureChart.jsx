@@ -9,7 +9,7 @@ import { BarChart3 } from 'lucide-react';
  * 
  * @param {Object} impacts - Object mapping feature names to impact levels
  */
-const FeatureChart = ({ impacts }) => {
+const FeatureChart = ({ impacts, darkMode }) => {
   /**
    * Get color based on impact level
    */
@@ -73,7 +73,9 @@ const FeatureChart = ({ impacts }) => {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200 animate-fadeIn">
+    <div className={`rounded-2xl shadow-lg p-8 border animate-fadeIn ${
+        darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      }`}>
       <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
         <BarChart3 className="w-5 h-5 text-purple-600" />
         Feature Impact Analysis

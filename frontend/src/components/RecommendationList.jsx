@@ -9,7 +9,7 @@ import { Award, TrendingUp, BookOpen, Users, Target, Sparkles } from 'lucide-rea
  * 
  * @param {Array} recommendations - Array of recommendation strings
  */
-const RecommendationList = ({ recommendations }) => {
+const RecommendationList = ({ recommendations, darkMode }) => {
   /**
    * Get icon based on recommendation content keywords
    */
@@ -70,7 +70,9 @@ const RecommendationList = ({ recommendations }) => {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200 animate-fadeIn">
+    <div className={`rounded-2xl shadow-lg p-8 border animate-fadeIn ${
+        darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      }`}>
       <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
         <Award className="w-5 h-5 text-blue-600" />
         Personalized Recommendations

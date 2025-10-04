@@ -9,7 +9,7 @@ import React from 'react';
  * @param {String} grade - Predicted grade (S/A/B/C/D/F)
  * @param {Number} confidence - Confidence score (0-1)
  */
-const ResultCard = ({ grade, confidence }) => {
+const ResultCard = ({ grade, confidence, darkMode }) => {
   /**
    * Get gradient colors based on grade
    */
@@ -41,7 +41,9 @@ const ResultCard = ({ grade, confidence }) => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-200 animate-fadeIn">
+    <div className={`rounded-2xl shadow-lg p-8 border animate-fadeIn ${
+        darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      }`}>
       <div className="text-center">
         <p className="text-sm font-medium text-slate-600 mb-4">Predicted Grade</p>
         

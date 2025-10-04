@@ -9,7 +9,7 @@ import { CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
  * @param {String} level - Risk level: 'low', 'medium', or 'high'
  * @param {Number} score - Risk score (0-100)
  */
-const RiskBadge = ({ level, score }) => {
+const RiskBadge = ({ level, score, darkMode }) => {
   /**
    * Get configuration based on risk level
    */
@@ -47,7 +47,9 @@ const RiskBadge = ({ level, score }) => {
   const Icon = config.icon;
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200 animate-fadeIn">
+    <div className={`rounded-2xl shadow-lg p-8 border animate-fadeIn ${
+        darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      }`}>
       <h3 className="text-lg font-bold text-slate-800 mb-4">Risk Assessment</h3>
       
       <div className={`${config.bg} border rounded-xl p-5 flex items-center gap-4 transition-all hover:shadow-md`}>
