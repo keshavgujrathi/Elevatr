@@ -7,12 +7,22 @@ import os
 import logging
 
 # Setup logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+
+# Configuration from environment variables
+app.config['DEBUG'] = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+app.config['ENV'] = os.getenv('FLASK_ENV', 'production')
+
+# CORS configuration - allow all origins in production (adjust as needed)
+ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', '*')
+CORS(app, origins=ALLOWED_ORIGINS)
 
 # Global variables for model artifacts
 model = None
@@ -22,11 +32,18 @@ feature_names = None
 
 # Load model on startup
 def load_model_artifacts():
+    """Load all ML model artifacts from the models directory."""
     global model, scaler, label_encoder, feature_names
     try:
-        model_path = os.path.join('models', 'elevatr_model.pkl')
-        scaler_path = os.path.join('models', 'scaler.pkl')
-        encoder_path = os.path.join('models', 'label_encoder.pkl')
+        # Get absolute path to models directory
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        models_dir = os.path.join(base_dir, 'models')
+        
+        logger.info(f"Loading models from: {models_dir}")
+        
+        model_path = os.path.join(models_dir, 'elevatr_model.pkl')
+        scaler_path = os.path.join(models_dir, 'scaler.pkl')
+        encoder_path = os.path.join(models_dir, 'label_encoder.pkl')
         
         model = joblib.load(model_path)
         scaler = joblib.load(scaler_path)
@@ -38,12 +55,16 @@ def load_model_artifacts():
         
         logger.info("✓ Model artifacts loaded successfully")
         return True
+    except FileNotFoundError as e:
+        logger.error(f"✗ Model file not found: {e}")
+        return False
     except Exception as e:
-        logger.error(f"✗ Failed to load model: {str(e)}")
+        logger.error(f"✗ Failed to load model: {e}")
         return False
 
 # Validate input data
 def validate_student_data(data):
+    """Validate student input data for required fields and value ranges."""
     required_fields = ['age', 'gender', 'study_hours_weekly', 'attendance_percent',
                       'previous_gpa', 'assignments_completed', 'participation_score',
                       'midterm_score', 'hours_on_platform']
@@ -66,8 +87,12 @@ def validate_student_data(data):
     }
     
     for field, (min_val, max_val, msg) in validations.items():
-        if not (min_val <= data[field] <= max_val):
-            return False, msg
+        try:
+            value = float(data[field])
+            if not (min_val <= value <= max_val):
+                return False, msg
+        except (ValueError, TypeError):
+            return False, f"{field} must be a valid number"
     
     if data['gender'] not in ['M', 'F']:
         return False, "Gender must be 'M' or 'F'"
@@ -76,75 +101,129 @@ def validate_student_data(data):
 
 # Generate recommendations
 def generate_recommendations(data, predicted_grade):
+    """Generate personalized recommendations based on student data and prediction."""
     recommendations = []
     
-    # Attendance recommendations
-    if data['attendance_percent'] < 70:
-        recommendations.append("⚠️ Low attendance detected. Aim for 80%+ to improve performance")
-    elif data['attendance_percent'] >= 90:
-        recommendations.append("✓ Excellent attendance! Keep it up")
+    attendance = data['attendance_percent']
+    study_hours = data['study_hours_weekly']
+    assignments = data['assignments_completed']
+    participation = data['participation_score']
+    midterm = data['midterm_score']
     
-    # Study hours recommendations
-    if data['study_hours_weekly'] < 15:
-        recommendations.append("📚 Increase study time to 20+ hours/week for better results")
-    elif predicted_grade in ['A', 'B'] and data['study_hours_weekly'] < 25:
-        recommendations.append("💡 Add 3-5 more study hours weekly to achieve grade S")
-    elif data['study_hours_weekly'] >= 30:
-        recommendations.append("✓ Strong study commitment!")
+    # Critical issues first (D/F grades)
+    if predicted_grade in ['D', 'F']:
+        if attendance < 70:
+            recommendations.append(f"🚨 URGENT: Attendance is {attendance:.0f}%. Aim for 80%+ immediately")
+        if assignments < 60:
+            recommendations.append(f"📝 CRITICAL: Complete missing assignments (currently {assignments}%)")
+        if study_hours < 15:
+            recommendations.append(f"⏰ Increase study time from {study_hours:.0f} to 20+ hours/week")
+        recommendations.append("💬 Schedule meeting with academic advisor for support plan")
     
-    # Assignment completion
-    if data['assignments_completed'] < 70:
-        recommendations.append("📝 Focus on completing assignments - currently at " + 
-                             f"{data['assignments_completed']}%")
-    elif data['assignments_completed'] >= 90:
-        recommendations.append("✓ Outstanding assignment completion rate")
+    # Moderate concerns (C grade)
+    elif predicted_grade == 'C':
+        if attendance < 80:
+            recommendations.append(f"📊 Boost attendance from {attendance:.0f}% to 85%+ for better grades")
+        if study_hours < 20:
+            recommendations.append(f"📚 Add {20 - study_hours:.0f} more study hours weekly")
+        if assignments < 80:
+            recommendations.append(f"✅ Focus on assignment quality - currently at {assignments}%")
     
-    # Participation
-    if data['participation_score'] < 50:
-        recommendations.append("🗣️ Increase class participation to boost engagement")
+    # Optimization (B grade)
+    elif predicted_grade == 'B':
+        if study_hours < 25:
+            recommendations.append(f"⭐ Add 3-5 study hours weekly to reach grade A")
+        if assignments < 90:
+            recommendations.append("📈 Push assignment completion to 90%+ for top performance")
+        recommendations.append("✓ Good foundation - small improvements yield big results!")
     
-    # Midterm performance
-    if data['midterm_score'] < 60:
-        recommendations.append("📖 Review midterm topics - extra help may be beneficial")
+    # Excellence maintenance (A/S grades)
+    else:
+        if attendance >= 90:
+            recommendations.append("🌟 Excellent attendance - keep up the consistency!")
+        if study_hours >= 25:
+            recommendations.append("💪 Strong study habits - you're setting a great example")
+        if assignments >= 90:
+            recommendations.append("✓ Outstanding assignment completion rate")
     
-    # Positive reinforcement for good performance
-    if predicted_grade in ['S', 'A'] and not recommendations:
-        recommendations.append("🌟 Excellent performance across all metrics!")
-    
-    return recommendations[:4]  # Limit to 4 recommendations
+    return recommendations[:5]
 
 # Calculate feature impacts
 def calculate_feature_impacts(data):
+    """Analyze which features positively or negatively impact performance."""
     impacts = {}
     
     # Attendance impact
-    if data['attendance_percent'] >= 85:
+    attendance = data['attendance_percent']
+    if attendance >= 90:
         impacts['attendance_percent'] = 'strong_positive'
-    elif data['attendance_percent'] >= 70:
+    elif attendance >= 80:
         impacts['attendance_percent'] = 'positive'
+    elif attendance >= 70:
+        impacts['attendance_percent'] = 'neutral'
     else:
         impacts['attendance_percent'] = 'negative'
     
     # Study hours impact
-    if data['study_hours_weekly'] >= 25:
+    study_hours = data['study_hours_weekly']
+    if study_hours >= 30:
         impacts['study_hours_weekly'] = 'strong_positive'
-    elif data['study_hours_weekly'] >= 15:
+    elif study_hours >= 20:
         impacts['study_hours_weekly'] = 'positive'
+    elif study_hours >= 15:
+        impacts['study_hours_weekly'] = 'neutral'
     else:
         impacts['study_hours_weekly'] = 'negative'
     
     # Midterm score impact
-    if data['midterm_score'] >= 80:
+    midterm = data['midterm_score']
+    if midterm >= 85:
         impacts['midterm_score'] = 'strong_positive'
-    elif data['midterm_score'] >= 60:
+    elif midterm >= 70:
         impacts['midterm_score'] = 'positive'
+    elif midterm >= 60:
+        impacts['midterm_score'] = 'neutral'
     else:
         impacts['midterm_score'] = 'negative'
     
     return impacts
 
+# Calculate risk score
+def calculate_risk_score(data):
+    """Calculate student risk score (0-100)."""
+    risk_score = 0
+    
+    # Attendance impact
+    if data['attendance_percent'] < 50:
+        risk_score += 30
+    elif data['attendance_percent'] < 70:
+        risk_score += 20
+    elif data['attendance_percent'] < 80:
+        risk_score += 10
+    
+    # Study hours impact
+    if data['study_hours_weekly'] < 10:
+        risk_score += 25
+    elif data['study_hours_weekly'] < 15:
+        risk_score += 15
+    
+    # Assignment completion impact
+    if data['assignments_completed'] < 50:
+        risk_score += 25
+    elif data['assignments_completed'] < 70:
+        risk_score += 18
+    
+    # Midterm performance impact
+    if data['midterm_score'] < 40:
+        risk_score += 15
+    elif data['midterm_score'] < 60:
+        risk_score += 10
+    
+    return min(risk_score, 100)
+
 # Make prediction
 def predict_student(data):
+    """Make prediction for a single student."""
     # Encode gender
     gender_encoded = 0 if data['gender'] == 'F' else 1
     
@@ -175,19 +254,14 @@ def predict_student(data):
     else:
         confidence = 0.85
     
-    # Calculate risk level and score
+    # Calculate risk
+    risk_score = calculate_risk_score(data)
     if predicted_grade in ['D', 'F']:
         risk_level = 'high'
-        risk_score = 75 + np.random.randint(0, 25)
     elif predicted_grade == 'C':
         risk_level = 'medium'
-        risk_score = 40 + np.random.randint(0, 30)
-    elif predicted_grade == 'B':
+    else:
         risk_level = 'low'
-        risk_score = 15 + np.random.randint(0, 20)
-    else:  # A or S
-        risk_level = 'low'
-        risk_score = np.random.randint(0, 15)
     
     return {
         'predicted_grade': predicted_grade,
@@ -199,29 +273,30 @@ def predict_student(data):
     }
 
 # API Endpoints
-@app.route('/')
-def home():
-    return jsonify({
-        'status': 'healthy',
-        'message': 'Welcome to the Elevatr Prediction API!',
-        'model_loaded': model is not None
-    })
-
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    return jsonify({
-        'status': 'healthy',
-        'model_loaded': model is not None
-    })
+    """Health check endpoint for monitoring."""
+    status = {
+        'status': 'healthy' if model is not None else 'unhealthy',
+        'model_loaded': model is not None,
+        'environment': app.config['ENV']
+    }
+    logger.info(f"Health check: {status}")
+    return jsonify(status)
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
+    """Predict student grade endpoint."""
     try:
         data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
         
         # Validate input
         is_valid, error_msg = validate_student_data(data)
         if not is_valid:
+            logger.warning(f"Validation failed: {error_msg}")
             return jsonify({'error': error_msg}), 400
         
         # Make prediction
@@ -231,11 +306,12 @@ def predict():
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"Prediction error: {str(e)}")
+        logger.error(f"Prediction error: {str(e)}", exc_info=True)
         return jsonify({'error': f'Prediction failed: {str(e)}'}), 500
 
 @app.route('/api/batch', methods=['POST'])
 def batch_predict():
+    """Batch prediction endpoint."""
     try:
         data = request.get_json()
         
@@ -257,12 +333,31 @@ def batch_predict():
         return jsonify(results)
         
     except Exception as e:
-        logger.error(f"Batch prediction error: {str(e)}")
+        logger.error(f"Batch prediction error: {str(e)}", exc_info=True)
         return jsonify({'error': f'Batch prediction failed: {str(e)}'}), 500
+
+@app.route('/', methods=['GET'])
+def index():
+    """Root endpoint with API information."""
+    return jsonify({
+        'name': 'Elevatr API',
+        'version': '1.0.0',
+        'description': 'AI-powered student performance prediction API',
+        'endpoints': {
+            'health': '/api/health',
+            'predict': '/api/predict',
+            'batch': '/api/batch'
+        }
+    })
 
 # Initialize app
 if __name__ == '__main__':
     if load_model_artifacts():
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        port = int(os.getenv('PORT', 5000))
+        debug_mode = app.config['DEBUG']
+        
+        logger.info(f"Starting Elevatr API on port {port} (debug={debug_mode})")
+        app.run(debug=debug_mode, host='0.0.0.0', port=port)
     else:
         logger.error("Failed to start: Could not load model artifacts")
+        exit(1)
